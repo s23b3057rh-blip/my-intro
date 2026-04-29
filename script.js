@@ -1,83 +1,79 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const moodButtonsContainer = document.getElementById('mood-buttons');
+    const searchInput = document.getElementById('search-input');
+    const restaurantGrid = document.getElementById('restaurant-grid');
+    const noResultsMsg = document.getElementById('no-results');
+    const resultsTitle = document.getElementById('results-title');
 
-    // Custom Cursor
-    const cursor = document.querySelector('.cursor');
-    const follower = document.querySelector('.cursor-follower');
-    
-    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    
-    if (!isTouchDevice && cursor && follower) {
-        document.addEventListener('mousemove', (e) => {
-            cursor.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
-            
-            setTimeout(() => {
-                follower.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
-            }, 50);
-        });
+    let currentCategory = "すべて";
+    let searchQuery = "";
 
-        const interactives = document.querySelectorAll('a, .profile-image-container, .scroll-indicator');
-        interactives.forEach(el => {
-            el.addEventListener('mouseenter', () => {
-                follower.style.width = '60px';
-                follower.style.height = '60px';
-                follower.style.backgroundColor = 'rgba(102, 252, 241, 0.1)';
+    // 初期化
+    initMoodButtons();
+    renderRestaurants();
+
+    // イベントリスナー
+    searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value.toLowerCase().trim();
+        renderRestaurants();
+    });
+
+    function initMoodButtons() {
+        moodCategories.forEach(category => {
+            const btn = document.createElement('button');
+            btn.className = `mood-btn ${category === currentCategory ? 'active' : ''}`;
+            btn.textContent = category;
+            btn.addEventListener('click', () => {
+                // アクティブ状態の切り替え
+                document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                currentCategory = category;
+                resultsTitle.textContent = category === "すべて" ? "おすすめのお店" : `${category}のおすすめ`;
+                renderRestaurants();
             });
-            el.addEventListener('mouseleave', () => {
-                follower.style.width = '40px';
-                follower.style.height = '40px';
-                follower.style.backgroundColor = 'transparent';
-            });
+            moodButtonsContainer.appendChild(btn);
         });
     }
 
-    // Scroll Animations using Intersection Observer
-    const observerOptions = {
-        root: null,
-        rootMargin: '0px',
-        threshold: 0.2
-    };
-
-    const observer = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('show');
-            }
+    function renderRestaurants() {
+        restaurantGrid.innerHTML = '';
+        
+        const filteredRestaurants = mockRestaurants.filter(restaurant => {
+            const matchCategory = currentCategory === "すべて" || restaurant.category === currentCategory;
+            const matchSearch = restaurant.name.toLowerCase().includes(searchQuery) || 
+                                restaurant.category.toLowerCase().includes(searchQuery) ||
+                                restaurant.description.toLowerCase().includes(searchQuery);
+            return matchCategory && matchSearch;
         });
-    }, observerOptions);
 
-    const hiddenElements = document.querySelectorAll('.hidden');
-    hiddenElements.forEach(el => observer.observe(el));
-    
-    // Navbar scroll effect
-    const navbar = document.querySelector('.navbar');
-    if (navbar) {
-        // Initially add the show class to navbar to make it visible right away
-        setTimeout(() => {
-            navbar.classList.add('show');
-        }, 300);
-
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 50) {
-                navbar.style.background = 'rgba(11, 12, 16, 0.9)';
-                navbar.style.backdropFilter = 'blur(10px)';
-                navbar.style.mixBlendMode = 'normal';
-                navbar.style.padding = '1.5rem 4rem';
-            } else {
-                navbar.style.background = 'transparent';
-                navbar.style.backdropFilter = 'none';
-                navbar.style.mixBlendMode = 'difference';
-                navbar.style.padding = '2rem 4rem';
-            }
-        });
-    }
-
-    // Glitch effect enhancement
-    const glitchTitle = document.querySelector('.glitch');
-    if(glitchTitle) {
-        setInterval(() => {
-            glitchTitle.style.animation = 'none';
-            void glitchTitle.offsetWidth; // Trigger reflow
-            glitchTitle.style.animation = 'glitch 2500ms infinite';
-        }, 5000);
+        if (filteredRestaurants.length === 0) {
+            noResultsMsg.classList.remove('hidden');
+        } else {
+            noResultsMsg.classList.add('hidden');
+            filteredRestaurants.forEach(restaurant => {
+                const card = document.createElement('div');
+                card.className = 'restaurant-card';
+                card.innerHTML = `
+                    <div class="image-container">
+                        <img src="${restaurant.image}" alt="${restaurant.name}" class="card-image" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-header">
+                            <h3 class="restaurant-name">${restaurant.name}</h3>
+                            <div class="restaurant-rating">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                                </svg>
+                                ${restaurant.rating}
+                            </div>
+                        </div>
+                        <div class="restaurant-category">${restaurant.category}</div>
+                        <p class="restaurant-desc">${restaurant.description}</p>
+                    </div>
+                `;
+                restaurantGrid.appendChild(card);
+            });
+        }
     }
 });
